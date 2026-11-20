@@ -55,6 +55,9 @@ h2{font-size:18px;margin:0 0 10px}
 select,input{padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);font:inherit}
 .note{background:var(--work);color:#fff;border-radius:8px;padding:8px 10px;margin:0 0 10px;font-size:14px}
 .go.okb{background:#16a34a}
+.cyc-chs{display:flex;flex-wrap:wrap;gap:6px}.cyc-ch{border:0;background:var(--line);color:var(--fg);padding:7px 12px;border-radius:999px;font:inherit;font-size:13px}.cyc-ch.on{background:var(--work);color:#fff}
+.cyc-pv{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}.cyc-pv b{font-size:10px;color:var(--mut);text-align:center;font-weight:400}.cyc-pv i{font-style:normal;text-align:center;font-size:11px;padding:5px 0;border-radius:5px;background:var(--rest,var(--line));color:var(--mut)}.cyc-pv i.w{background:var(--work);color:#fff;font-weight:600}.cyc-pv i.o{background:transparent;border:1px dashed var(--line)}
+.cyc-er{color:#b45309}.cyc-rs{background:var(--bg);border-radius:8px;padding:6px 8px}.cyc-t{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .go{width:100%;margin:10px 0;padding:10px;border:0;border-radius:8px;background:var(--work);color:#fff;font-size:15px;font-weight:600}
 details{margin-top:4px}summary{font-size:14px;padding:4px 0}
 .bk{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:20}
@@ -75,15 +78,19 @@ details{margin-top:4px}summary{font-size:14px;padding:4px 0}
 var MS=["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"],MC=["Janv.","Févr.","Mars","Avr.","Mai","Juin","Juil.","Août","Sept.","Oct.","Nov.","Déc."];
 var T={CA:"Congés annuels",CAHP:"Congés hors période",CF:"Crédits fériés",RTC:"ARTT cycliques",RPS:"Repos de pénibilité",HS:"Heures supplémentaires",CET:"Compte épargne temps",CETH:"CET historique"};
 var K=["CA","CAHP","CF","RTC","RPS","HS","CET","CETH"],DEF={CA:18,CAHP:0,CF:6552,RTC:11289,RPS:0,HS:0,CET:0,CETH:0},DK={CA:1,CAHP:1,CET:1,CETH:1};
-var P=[1,1,1,0,0,1,1,0,0,0,1,1,0,0],PL=["","","","RC","RL","","","RC","RC","RL","","","RC","RL"];
-var R={c12:["2/2/3 jour 07h00-19h08 (12h08)",728,1],c11:["2/2/3 jour 08h52-20h00 (11h08)",668,1],n12:["2/2/3 nuit 19h00-07h08 (12h08)",728,1,1]};
+var PL=["","","","RC","RL","","","RC","RC","RL","","","RC","RL"];
+var LEG={c12:["07:00","19:08"],c11:["08:52","20:00"],n12:["19:00","07:08"]};
 var S=null,B=null,POP="",EI=-1,CI="",FS=false,RS=null,OPEN=false,tm=null,now=new Date(),Y=now.getFullYear(),M=now.getMonth();
 function $(i){return document.getElementById(i)}
 try{S=JSON.parse(localStorage.getItem("cyc1"))}catch(e){}
-if(!S||!S.days){S={start:"2026-10-02",bal:{},days:{}}}
-if(!R[S.reg]){S.reg="c12"}
-if(!S.lens){S.lens={}}
+var NEWS=false;
+if(!S||!S.days){S={bal:{},days:{}};NEWS=true}
 if(!S.bal){S.bal={}}
+if(!S.cd){mig(S,NEWS)}
+if(!S.cd[S.reg]){S.reg=Object.keys(S.cd)[0]}
+if(!S.ann){S.ann={}}
+if(!S.y0){S.y0=2026}
+var DEL=false;
 if(!S.bd){S.bd={}}
 if(!S.rd){S.rd={}}
 if(!S.pt){S.pt={}}
@@ -100,28 +107,58 @@ function p2(n){return n<10?"0"+n:""+n}
 function iso(y,m,d){return y+"-"+p2(m+1)+"-"+p2(d)}
 function dn(y,m,d){return Math.round(Date.UTC(y,m,d)/864e5)}
 var TD=iso(now.getFullYear(),now.getMonth(),now.getDate());
-function idx(y,m,d){var a=S.start.split("-"),n=dn(y,m,d)-dn(+a[0],a[1]-1,+a[2]);return((n%14)+14)%14}
-function work(y,m,d){if(!R[S.reg][2]){var w=new Date(y,m,d).getDay();return w>0&&w<6}return P[idx(y,m,d)]===1}
-function lab(y,m,d){return R[S.reg][2]?PL[idx(y,m,d)]:""}
-function dl(){var v=S.lens[S.reg];return v>0?v:R[S.reg][1]}
+function addd(s,n){var a=s.split("-"),t=new Date(Date.UTC(+a[0],a[1]-1,+a[2])+n*864e5);return t.getUTCFullYear()+"-"+p2(t.getUTCMonth()+1)+"-"+p2(t.getUTCDate())}
+function mig(o,nw){var d=(typeof o.start==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(o.start))?o.start:"2026-10-02",ids=[],k;o.cd={};
+if(nw){o.reg="c12";o.cd.c12={r:"2/2/3",st:iso(now.getFullYear(),now.getMonth(),now.getDate()),a:"07:00",b:"19:08"};o.y0=now.getFullYear();o.ann={};return}
+ids.push(LEG[o.reg]?o.reg:"c12");if(o.rd&&typeof o.rd==="object"){for(k in o.rd){if(LEG[k]&&ids.indexOf(k)<0){ids.push(k)}}}
+ids.forEach(function(id){o.cd[id]={r:"2/2/3",st:addd(d,10),a:LEG[id][0],b:LEG[id][1]}});
+o.reg=ids[0]===o.reg||LEG[o.reg]?o.reg:ids[0];if(!o.cd[o.reg]){o.reg=ids[0]}
+o.y0=(typeof o.y0==="number")?o.y0:2026;o.ann=o.ann||{}}
+function pr(txt){var parts=String(txt).split(/[\/\-\s,;.]+/).filter(function(x){return x!==""}),nums=[],seq=[],pat=[],i,v;
+if(parts.length<1||parts.length>8){return{err:"Saisissez entre 1 et 8 nombres, par exemple 4/2."}}
+for(i=0;i<parts.length;i++){v=+parts[i];if(!/^\d+$/.test(parts[i])||v<1||v>14){return{err:"Chaque nombre doit être un entier entre 1 et 14."}}nums.push(v)}
+for(i=0;i<nums.length;i++){seq.push({w:i%2===0,n:nums[i]})}
+if(nums.length%2===1){for(i=0;i<nums.length;i++){seq.push({w:i%2!==0,n:nums[i]})}}
+seq.forEach(function(q){for(var k=0;k<q.n;k++){pat.push(q.w?1:0)}});
+if(pat.length>56){return{err:"Le cycle dépasse 56 jours."}}
+if(pat.indexOf(1)<0||pat.indexOf(0)<0){return{err:"Il faut au moins un jour de travail et un jour de repos."}}
+return{pat:pat,seq:seq,txt:nums.join("/")}}
+var PC={k:"",v:null};
+function cdf(){return S.cd[S.reg]}
+function pat(){var c=cdf();if(PC.k!==c.r){PC.k=c.r;PC.v=pr(c.r)}return PC.v.pat||[1,0]}
+function tmn(x){var a=String(x||"").split(":");return a.length===2?(+a[0])*60+(+a[1]):NaN}
+function durOf(a,b){var x=tmn(a),y=tmn(b);if(isNaN(x)||isNaN(y)||x===y){return 0}return y>x?y-x:y+1440-x}
+function idx(y,m,d){var a=cdf().st.split("-"),L=pat().length,n=dn(y,m,d)-dn(+a[0],a[1]-1,+a[2]);return((n%L)+L)%L}
+function work(y,m,d){return pat()[idx(y,m,d)]===1}
+var C223=pr("2/2/3").pat.join("");
+function lab(y,m,d){return pat().join("")===C223?PL[(idx(y,m,d)+10)%14]:""}
+function dl(){return durOf(cdf().a,cdf().b)||728}
+function hm(x){var a=x.split(":");return a[0]+"h"+a[1]}
+function cname(c){var r=pr(c.r);return(r.txt||c.r)+" · "+hm(c.a)+"–"+hm(c.b)+" ("+fmt(durOf(c.a,c.b))+")"}
+var REF={};REF[C223+"|728"]={CA:18,CF:6552,RTC:11289};REF[C223+"|668"]={CA:18,CF:6552,RTC:3207};
+function isC(k){return k==="RPS"||k==="HS"||k==="CET"||k==="CETH"}
 function fmt(v){var a=Math.abs(v);return(v<0?"−":"")+Math.floor(a/60)+"h"+p2(a%60)}
 function parse(s){s=String(s).trim().toLowerCase();var r=s.match(/^(\d+)\s*[h:]\s*(\d{0,2})$/);if(r){return +r[1]*60+(+r[2]||0)}r=s.match(/^\d+([.,]\d+)?$/);return r?Math.round(parseFloat(s.replace(",","."))*60):null}
 function cd(k){return k==="CETH"?"CET hist.":k}
 function bo(y){if(!S.bal[y]){S.bal[y]={}}return S.bal[y]}
 function inibd(){var y=now.getFullYear();K.forEach(function(k){if(!S.bd[y+k]){S.bd[y+k]=ts()}})}
-function swreg(r){if(r===S.reg||!R[r]){return}S.rd[S.reg]={bal:S.bal,bd:S.bd,days:S.days,pt:S.pt};var fr=!S.rd[r],t=S.rd[r]||{bal:{},bd:{},days:{},pt:{}};delete S.rd[r];S.bal=t.bal;S.bd=t.bd;S.days=t.days;S.pt=t.pt||{};S.reg=r;if(fr){inibd();S.ini[r]=1}save();render()}
+function pack(){return{bal:S.bal,bd:S.bd,days:S.days,pt:S.pt,ann:S.ann,y0:S.y0}}
+function load(t,y0){S.bal=t.bal||{};S.bd=t.bd||{};S.days=t.days||{};S.pt=t.pt||{};S.ann=t.ann||{};S.y0=t.y0||y0}
+function swreg(r){if(r===S.reg||!S.cd[r]){return}S.rd[S.reg]=pack();var fr=!S.rd[r],t=S.rd[r]||{};delete S.rd[r];load(t,fr?now.getFullYear():2026);S.reg=r;DEL=false;if(fr){inibd();S.ini[r]=1}save();render()}
+function ncy(){var id="n"+Date.now().toString(36);S.rd[S.reg]=pack();S.cd[id]={r:"2/2/3",st:TD,a:"07:00",b:"19:08"};load({},now.getFullYear());S.reg=id;DEL=false;inibd();S.ini[id]=1;save();render()}
+function dcy(){var ks=Object.keys(S.cd);if(ks.length<2){return}var id=S.reg,nx=ks.filter(function(k){return k!==id})[0],t=S.rd[nx]||{};delete S.rd[nx];load(t,2026);delete S.cd[id];delete S.ini[id];S.reg=nx;DEL=false;save();render()}
 function bd(c,y){return S.bd[y+c]||""}
 function ts(){var d=new Date();return iso(d.getFullYear(),d.getMonth(),d.getDate())+"T"+p2(d.getHours())+":"+p2(d.getMinutes())+":"+p2(d.getSeconds())}
 function cnt(k,c,y){var b=bd(c,y);return k>b||(S.pt[k]||"")>=b&&!!S.pt[k]}
 if(!S.ini[S.reg]){inibd();S.ini[S.reg]=1;save()}
 function setd(k,v){if(v){S.days[k]=v;S.pt[k]=ts()}else{delete S.days[k];delete S.pt[k]}}
-function dfl(k){return(k==="RTC"&&S.reg==="c11")?3207:DEF[k]}
+function dfl(k){var r=REF[pat().join("")+"|"+dl()];return r&&r[k]!=null?r[k]:0}
 function fdt(d){return d.slice(8,10)+"/"+d.slice(5,7)+"/"+d.slice(0,4)}
 function used(y,f){var u={CA:0,CAHP:0,CF:0,RTC:0,RPS:0,HS:0,CET:0,CETH:0};for(var k in S.days){if(k.slice(0,4)==String(y)&&(k>TD)===!!f&&u.hasOwnProperty(S.days[k])&&cnt(k,S.days[k],y)){u[S.days[k]]++}}return u}
-function rcv(w){if(R[S.reg][3]){return w===6?216:(w===0?108:54)}return w===0?Math.round(0.4*dl()):0}
-function rc(y,f){var n=0;if(!R[S.reg][2]){return 0}for(var m=0;m<12;m++){var N=new Date(y,m+1,0).getDate();for(var d=1;d<=N;d++){if(work(y,m,d)){var c=rcv(new Date(y,m,d).getDay()),k=iso(y,m,d);if(c&&!S.days[k]&&k>bd("RPS",y)&&(k>TD)===!!f){n+=c}}}}return n}
+function crd(w){var a=tmn(cdf().a),d=dl(),s=0,t,dd,m,x,c;for(t=a;t<a+d;t++){dd=Math.floor(t/1440);m=t%1440;x=(w+dd)%7;c=0;if(x===0||(x===6&&m>=1260)){c=4}else if(m>=1260||m<360){c=1}s+=c}return Math.round(s/10)}
+function rc(y,f){var n=0,cr=[0,1,2,3,4,5,6].map(crd),m,d,N,c,k;for(m=0;m<12;m++){N=new Date(y,m+1,0).getDate();for(d=1;d<=N;d++){if(work(y,m,d)){c=cr[new Date(y,m,d).getDay()];k=iso(y,m,d);if(c&&!S.days[k]&&k>bd("RPS",y)&&(k>TD)===!!f){n+=c}}}}return n}
 function hp(y){var n=0;for(var k in S.days){if(S.days[k]==="CA"&&k.slice(0,4)==String(y)&&cnt(k,"CAHP",y)){var m=+k.slice(5,7);if(m<=4||m>=11){n++}}}return{n:n,c:n>=8?2:(n>=5?1:0)}}
-function st(k,y){var b=S.bal[y];if(b&&b[k]!=null){return b[k]}if((k==="RPS"||k==="HS"||k==="CET"||k==="CETH")&&y>2026){return rm(k,y-1,true)}return dfl(k)}
+function st(k,y){var b=S.bal[y];if(b&&b[k]!=null){return b[k]}if(isC(k)&&y>S.y0){return rm(k,y-1,true)}return S.ann[k]!=null?S.ann[k]:dfl(k)}
 function rm(k,y,a){var u=used(y),s=st(k,y)+(k==="CAHP"?hp(y).c:0);if(a){u[k]+=used(y,true)[k]}return DK[k]?s-u[k]:s-u[k]*dl()+(k==="RPS"?rc(y,false)+(a?rc(y,true):0):0)}
 function msg(t){$("toast").textContent=t;clearTimeout(tm);tm=setTimeout(function(){$("toast").textContent=""},2500)}
 function go(n){var t=Y*12+M+n;Y=Math.floor(t/12);M=t%12}
@@ -145,22 +182,37 @@ function val(k,r){return DK[k]?r+" j":fmt(r)}
 function chips(){return'<div class="chips">'+K.map(function(k){return'<button class="chip'+(B===k?' on':'')+'" data-k="'+k+'" style="--x:var(--'+k.toLowerCase()+');--xt:var(--'+k.toLowerCase()+'-t,#fff)">'+cd(k)+" "+val(k,rm(k,Y))+'</button>'}).join("")+nb()+'</div>'}
 function ci(k){var r=rm(k,Y),ff=used(Y,true)[k],fc=k==="RPS"?rc(Y,true):0;
 return'<button class="ci'+(B===k?' on':'')+'" data-k="'+k+'" style="--x:var(--'+k.toLowerCase()+')"><span class="m"><i></i>'+cd(k)+'</span><b'+(r<0?' class="neg"':'')+'>'+val(k,r)+'</b>'+(ff>0||fc>0?'<span class="m">Prévu '+(DK[k]?(r-ff)+" j":fmt(r-ff*dl()+fc))+'</span>':'')+(k==="CAHP"?'<span class="m">'+hp(Y).n+' CA hors période → +'+hp(Y).c+'</span>':'')+'</button>'}
-function slb(k){var man=S.bal[Y]&&S.bal[Y][k]!=null;if(man){return S.bd[Y+k]?"Solde saisi le "+fdt(S.bd[Y+k]):"Solde saisi"}return(Y>2026&&(k==="RPS"||k==="HS"||k==="CET"||k==="CETH"))?"Report automatique de l’année précédente":"Valeur par défaut – saisissez votre solde actuel"}
-function sinp(k){
-return'<label class="si">'+slb(k)+'<input data-b="'+k+'" value="'+(DK[k]?st(k,Y):fmt(st(k,Y)))+'"></label>'}
+function slb(k){var man=S.bal[Y]&&S.bal[Y][k]!=null;if(man){return S.bd[Y+k]?"Solde actuel saisi le "+fdt(S.bd[Y+k]):"Solde actuel saisi"}return(isC(k)&&Y>S.y0)?"Report automatique de l’année précédente":"Solde actuel – à saisir (valeur par défaut affichée)"}
+function sinp(k){var h="",a;
+if(!isC(k)){a=S.ann[k]!=null?S.ann[k]:dfl(k);h+='<label class="si">Solde au 01/01 (valeur de chaque année)<input data-a="'+k+'" value="'+(DK[k]?a:fmt(a))+'"></label>'}
+return h+'<label class="si">'+slb(k)+'<input data-b="'+k+'" value="'+(DK[k]?st(k,Y):fmt(st(k,Y)))+'"></label>'}
 function cnts(){var G=[["CA"],["CAHP"],["CF"],["RTC"],["RPS"],["HS"],["CET"],["CETH"]];return'<div class="mc">'+G.map(function(g){return'<div>'+g.map(function(k){return ci(k)+sinp(k)}).join("")+'</div>'}).join("")+'</div>'}
+function cyui(){var c=cdf(),r=pr(c.r),du=durOf(c.a,c.b),n=nightM(),h='<div class="card"><b>Mon cycle de travail</b>',L,W,i,mo,wd,t,diff,cl;
+h+='<label class="m">1 · Rythme du cycle (jours travaillés / repos, en alternance)</label><div class="cyc-chs">'+["2/2/3","4/2","3/3","2/2","5/2"].map(function(v){return'<button class="cyc-ch'+(r.txt===v?' on':'')+'" data-ry="'+v+'">'+v+'</button>'}).join("")+'<button class="cyc-ch'+(["2/2/3","4/2","3/3","2/2","5/2"].indexOf(r.txt)<0?' on':'')+'" data-ry="">Autre</button></div><input id="ry" value="'+esc(c.r)+'" autocomplete="off">';
+h+=r.err?'<div class="m cyc-er">'+r.err+'</div>':'<div class="m cyc-rs">'+r.seq.map(function(q){return q.n+" j "+(q.w?"travail":"repos")}).join(" · ")+'</div>';
+h+='<label class="m">2 · Premier jour du cycle (premier jour travaillé du premier groupe)</label><input type="date" id="st" value="'+c.st+'">';
+if(!r.err){L=r.pat.length;W=r.pat.reduce(function(a,b){return a+b},0);
+h+='<label class="m">3 · Durée du cycle</label><div class="m cyc-rs">'+L+' jours : '+W+' travaillés, '+(L-W)+' de repos'+(du>0?' · moyenne '+fmt(Math.round(W/L*7*du))+' par semaine':'')+'</div>';
+var a=c.st.split("-"),s0=Date.UTC(+a[0],a[1]-1,+a[2]),w0=((new Date(s0).getUTCDay())+6)%7,f0=s0-w0*864e5;
+h+='<div class="cyc-pv">'+"LMMJVSD".split("").map(function(x){return'<b>'+x+'</b>'}).join("");
+for(i=0;i<35;i++){t=f0+i*864e5;diff=Math.round((t-s0)/864e5);cl=diff<0?"o":(r.pat[diff%L]?"w":"");h+='<i class="'+cl+'">'+new Date(t).getUTCDate()+'</i>'}
+h+='</div>'}
+h+='<label class="m">4 · Plage horaire</label><div class="cyc-chs">'+[["07h00–19h08","07:00","19:08"],["08h52–20h00","08:52","20:00"],["19h00–07h08","19:00","07:08"]].map(function(p){return'<button class="cyc-ch'+(c.a===p[1]&&c.b===p[2]?' on':'')+'" data-pa="'+p[1]+'" data-pb="'+p[2]+'">'+p[0]+'</button>'}).join("")+'</div>';
+h+='<div class="cyc-t"><div><label class="m" for="ha">Début</label><input type="time" id="ha" value="'+c.a+'"></div><div><label class="m" for="hb">Fin</label><input type="time" id="hb" value="'+c.b+'"></div></div>';
+h+='<div class="m cyc-rs">Durée d’une journée : '+fmt(du)+(tmn(c.b)<tmn(c.a)?' (finit le lendemain)':'')+(n>0?' · '+fmt(n)+' entre 21h et 6h':' · aucune heure entre 21h et 6h')+'</div></div>';
+return h}
+function nightM(){var a=tmn(cdf().a),d=dl(),n=0,t,m;for(t=a;t<a+d;t++){m=t%1440;if(m>=1260||m<360){n++}}return n}
 function sets(){var h='<h2>Réglages</h2>';
 if(!S.setup){h+='<div class="note">Commencez par choisir votre cycle de travail.</div>'}
-h+='<div class="card"><label class="m">Régime de travail</label><select id="rg">'+Object.keys(R).map(function(k){return'<option value="'+k+'"'+(k===S.reg?' selected':'')+'>'+R[k][0]+'</option>'}).join("")+'</select>';
-if(R[S.reg][2]){h+='<label class="m">Premier jour d’un bloc Ven-Sam-Dim travaillé</label><input type="date" id="st" value="'+S.start+'">'}
-h+='<label class="m">Durée d’une journée (h:mm)</label><input id="ln" value="'+fmt(dl())+'">';
-h+='<details'+(OPEN?' open':'')+'><summary>Mes soldes actuels</summary><div class="m">Saisissez votre solde d’aujourd’hui : seuls les jours posés et les crédits postérieurs à la saisie sont comptés.</div>'+K.map(function(k){return'<label class="m">'+T[k]+' – '+slb(k)+'</label><input data-b="'+k+'" value="'+(DK[k]?st(k,Y):fmt(st(k,Y)))+'">'}).join("")+'</details></div>';
+h+='<div class="card"><label class="m">Mes cycles</label><select id="rg">'+Object.keys(S.cd).map(function(k){return'<option value="'+k+'"'+(k===S.reg?' selected':'')+'>'+cname(S.cd[k])+'</option>'}).join("")+'</select><button class="pi lb" id="nc">+ Nouveau cycle</button>'+(Object.keys(S.cd).length>1?'<button class="pi lb" id="dc">'+(DEL?'Confirmer : supprimer ce cycle et ses données':'Supprimer ce cycle')+'</button>':'')+'</div>';
+h+=cyui();
+h+='<div class="card"><details'+(OPEN?' open':'')+'><summary>Mes soldes</summary><div class="m">Saisissez votre solde d’aujourd’hui (« solde actuel ») : seuls les jours posés et les crédits postérieurs à la saisie sont comptés. Le « solde au 01/01 » est la valeur que reprend le compteur chaque nouvelle année (CA, CAHP, CF, RTC). RPS, HS, CET et CET hist. se reportent d’eux-mêmes.</div>'+K.map(function(k){return'<div class="m" style="margin-top:6px"><b>'+T[k]+'</b></div>'+sinp(k)}).join("")+'</details></div>';
 if(!S.setup){h+='<button class="go okb" id="ok">Valider mon cycle</button>'}
 h+='<div class="card" style="margin-top:10px"><b>Vacances scolaires</b><label class="ck"><input type="checkbox" id="vo"'+(S.vz.on?' checked':'')+'>Afficher sur les calendriers</label><div class="m">Zones à afficher (une ou plusieurs)</div>'+["A","B","C"].map(function(z){return'<label class="ck"><input type="checkbox" data-z="'+z+'"'+(S.vz.z.indexOf(z)>=0?' checked':'')+'><i class="zd" style="background:'+ZC[z]+'"></i><span>Zone '+z+'<br><span class="m">'+ZA[z]+'</span></span></label>'}).join("")+'<div class="m">Zones de la France métropolitaine. Dates officielles de juillet 2025 à mai 2028 : Toussaint, Noël, hiver, printemps et été (hors ponts de l’Ascension, Corse et outre-mer). Au-delà, rien n’est affiché.</div></div>';
-h+=colors();h+=bkcard();
-h+='<p class="m" style="margin-top:10px">Outil indicatif non officiel, établi d’après l’arrêté du 5 septembre 2019. Il ne remplace ni votre bulletin, ni votre service de gestion : vérifiez vos soldes auprès de votre administration. Vos données restent sur cet appareil.<br>Version 1.3 (19/11/2026)</p>';
+h+=colors();h+=icscard();h+=bkcard();
+h+='<p class="m" style="margin-top:10px">Outil indicatif non officiel, établi d’après l’arrêté du 5 septembre 2019. Il ne remplace ni votre bulletin, ni votre service de gestion : vérifiez vos soldes auprès de votre administration. Vos données restent sur cet appareil.<br>Version 2.1 (20/11/2026)</p>';
 
-return h+'<p class="m">Décompte : CA, CAHP, CET, CET hist. = 1 jour par jour posé ; CF, RTC, RPS, HS = '+fmt(dl())+' par jour posé (hypothèse à confirmer). Un jour posé n’est décompté que le jour même ; avant, il apparaît en « Prévu ». Un jour posé sur un repos ne décompte rien. RPS : crédit automatique. Cycles de jour : 0,4 × durée de la journée par dimanche travaillé (4h51 en 12h08, 4h27 en 11h08). Cycle de nuit : 54 min par nuit, 3h36 pour la nuit du samedi au dimanche, 1h48 pour la nuit du dimanche au lundi. Rien n’est crédité si le jour est posé en congé ; crédit le jour même, avant il figure en « Prévu ».</p>'}
+return h+'<p class="m">Décompte : CA, CAHP, CET, CET hist. = 1 jour par jour posé ; CF, RTC, RPS, HS = durée de votre journée ('+fmt(dl())+') par jour posé. Un jour posé n’est décompté que le jour même ; avant, il apparaît en « Prévu ». Un jour posé sur un repos ne décompte rien. RPS : crédit automatique calculé d’après votre plage horaire, soit 0,4 par heure travaillée le dimanche (y compris les heures de nuit du samedi 21h au dimanche minuit) et 0,1 par heure travaillée entre 21h et 6h les autres jours. Rien n’est crédité si le jour est posé en congé ; crédit le jour même, avant il figure en « Prévu ».</p>'}
 function render(){var h="";
 if(TAB==="set"){h=sets()}else{
 var tp='<div class="top"><button class="nv" data-n="-1" aria-label="Précédent">‹</button><b>'+lab2()+'</b><button class="nv" data-n="1" aria-label="Suivant">›</button></div>';
@@ -191,17 +243,21 @@ function colors(){var IT=[["ca","CA"],["cahp","CAHP"],["cf","CF"],["rtc","RTC"],
 var h='<div class="card" style="margin-top:10px"><b>Couleurs</b><div class="m">Touchez un élément, puis choisissez sa couleur.</div><div class="chips" style="flex-wrap:wrap">'+IT.map(function(x){var k=x[0],bg=(k==="za"||k==="zb"||k==="zc")?ZC[k.charAt(1).toUpperCase()]:'var(--'+k+')';return'<button class="chip'+(CI===k?' on':'')+'" data-ci="'+k+'" style="--x:var(--mut)"><i class="zd" style="background:'+bg+'"></i> '+x[1]+'</button>'}).join("")+'</div>';
 if(CI){var cur=curHex(CI).toLowerCase();h+='<div class="sw">'+SW.map(function(c){return'<button class="swb'+(c===cur?' on':'')+'" data-sw="'+c+'" style="background:'+c+'" aria-label="'+c+'"></button>'}).join("")+'</div><label class="ck"><input type="color" id="cp" value="'+cur+'">Couleur personnalisée</label><button class="pi" data-cr="1" style="text-align:center">Réinitialiser cette couleur</button>'}
 return h+'<button class="pi" data-cra="1" style="text-align:center">Réinitialiser toutes les couleurs</button></div>'}
-function clean(o){var n={},dt=/^\d{4}-\d{2}-\d{2}$/,k,c;
-n.start=(typeof o.start==="string"&&dt.test(o.start))?o.start:"2026-10-02";
-n.reg=R[o.reg]?o.reg:"c12";
+function clean(o){var n={},dt=/^\d{4}-\d{2}-\d{2}$/,k,c,d;
+if(!o.inrd&&!o.cd){mig(o,false)}
+n.cd={};
+if(!o.inrd){if(o.cd&&typeof o.cd==="object"){for(k in o.cd){d=o.cd[k];if(/^[a-z0-9]{2,14}$/.test(k)&&d&&typeof d==="object"&&typeof d.r==="string"&&!pr(d.r).err&&typeof d.st==="string"&&dt.test(d.st)&&/^\d{2}:\d{2}$/.test(d.a)&&/^\d{2}:\d{2}$/.test(d.b)&&durOf(d.a,d.b)>0){n.cd[k]={r:pr(d.r).txt,st:d.st,a:d.a,b:d.b}}}}
+if(!Object.keys(n.cd).length){n.cd.c12={r:"2/2/3",st:"2026-10-12",a:"07:00",b:"19:08"}}}
+n.reg=o.inrd?String(o.reg||""):(n.cd[o.reg]?o.reg:Object.keys(n.cd)[0]);
 n.view=(o.view==="6"||o.view==="12")?o.view:"1";
-n.setup=o.setup?1:0;n.v=2;n.last=typeof o.last==="string"?o.last:"";
-n.lens={};if(o.lens&&typeof o.lens==="object"){for(k in o.lens){if(R[k]&&typeof o.lens[k]==="number"&&o.lens[k]>0){n.lens[k]=o.lens[k]}}}
+n.setup=o.setup?1:0;n.v=3;n.last=typeof o.last==="string"?o.last:"";
+n.y0=(typeof o.y0==="number"&&o.y0>=2020&&o.y0<=2100)?Math.floor(o.y0):2026;
+n.ann={};if(o.ann&&typeof o.ann==="object"){for(c in o.ann){if(DEF.hasOwnProperty(c)&&typeof o.ann[c]==="number"&&isFinite(o.ann[c])&&o.ann[c]>=0){n.ann[c]=o.ann[c]}}}
 n.bal={};if(o.bal&&typeof o.bal==="object"){for(k in o.bal){if(/^\d{4}$/.test(k)&&o.bal[k]&&typeof o.bal[k]==="object"){n.bal[k]={};for(c in o.bal[k]){if(DEF.hasOwnProperty(c)&&typeof o.bal[k][c]==="number"&&isFinite(o.bal[k][c])){n.bal[k][c]=o.bal[k][c]}}}}}
 n.bd={};if(o.bd&&typeof o.bd==='object'){for(k in o.bd){if(/^\d{4}[A-Z]+$/.test(k)&&typeof o.bd[k]==='string'&&/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2})?$/.test(o.bd[k])){n.bd[k]=o.bd[k]}}}
 n.days={};n.pt={};if(o.days&&typeof o.days==="object"){for(k in o.days){if(dt.test(k)&&T.hasOwnProperty(o.days[k])){n.days[k]=o.days[k];if(o.pt&&typeof o.pt[k]==="string"&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(o.pt[k])){n.pt[k]=o.pt[k]}}}}
-n.ini={};if(o.ini&&typeof o.ini==='object'){for(k in o.ini){if(R[k]&&o.ini[k]){n.ini[k]=1}}}
-n.rd={};if(o.rd&&typeof o.rd==='object'&&!o.inrd){for(k in o.rd){if(R[k]&&k!==n.reg&&o.rd[k]&&typeof o.rd[k]==='object'){var q=clean({reg:k,inrd:1,bal:o.rd[k].bal,bd:o.rd[k].bd,days:o.rd[k].days,pt:o.rd[k].pt});n.rd[k]={bal:q.bal,bd:q.bd,days:q.days,pt:q.pt}}}}
+n.ini={};if(o.ini&&typeof o.ini==='object'){for(k in o.ini){if(/^[a-z0-9]{2,14}$/.test(k)&&o.ini[k]){n.ini[k]=1}}}
+n.rd={};if(o.rd&&typeof o.rd==='object'&&!o.inrd){for(k in o.rd){if(n.cd[k]&&k!==n.reg&&o.rd[k]&&typeof o.rd[k]==='object'){var q=clean({reg:k,inrd:1,bal:o.rd[k].bal,bd:o.rd[k].bd,days:o.rd[k].days,pt:o.rd[k].pt,ann:o.rd[k].ann,y0:o.rd[k].y0});n.rd[k]={bal:q.bal,bd:q.bd,days:q.days,pt:q.pt,ann:q.ann,y0:q.y0}}}}
 n.notes={};if(o.notes&&typeof o.notes==="object"){for(k in o.notes){if(!dt.test(k)){continue}var a=o.notes[k];if(typeof a==="string"){a=[a]}if(Array.isArray(a)){a=a.filter(function(x){return typeof x==="string"&&x.trim()}).map(function(x){return x.slice(0,80)});if(a.length){n.notes[k]=a}}}}
 n.vz={on:o.vz&&o.vz.on?1:0,z:[]};if(o.vz&&Array.isArray(o.vz.z)){["A","B","C"].forEach(function(z){if(o.vz.z.indexOf(z)>=0){n.vz.z.push(z)}})}
 n.col={};if(o.col&&typeof o.col==="object"){for(k in o.col){if(DCOL.hasOwnProperty(k)&&/^#[0-9a-f]{6}$/i.test(o.col[k])){n.col[k]=o.col[k].toLowerCase()}}}
@@ -220,6 +276,22 @@ $("pop").innerHTML='<div class="bk" data-x="1"><div class="pp"><div class="m" st
 function readBk(f){if(!f){return}var r=new FileReader();r.onload=function(){var er=parseBk(r.result);if(er){msg(er)}};r.onerror=function(){msg("Lecture du fichier impossible.")};r.readAsText(f)}
 function pasteBox(){$("pop").innerHTML='<div class="bk" data-x="1"><div class="pp"><div class="m" style="margin-bottom:6px">Collez ici le contenu de votre fichier de sauvegarde</div><textarea id="ptx" rows="6" class="ta"></textarea><div class="m" id="pe" style="color:var(--bad)"></div><button class="go" data-pv="1" style="margin:6px 0">Continuer</button><button class="pi" data-cl="1" style="text-align:center">Annuler</button></div></div>'}
 function copyBox(){var q=bkText();$("pop").innerHTML='<div class="bk" data-x="1"><div class="pp"><div class="m" style="margin-bottom:6px">Sauvegarde sous forme de texte</div><textarea id="ctx" rows="6" readonly class="ta">'+esc(q.txt)+'</textarea><div class="m" id="cm"></div><button class="go" data-cc="1" style="margin:6px 0">Copier le texte</button><button class="pi" data-cl="1" style="text-align:center">Fermer</button></div></div>'}
+function icsq(t){return String(t).split("\\").join("\\\\").split(";").join("\\;").split(",").join("\\,").split("\r").join("").split("\n").join("\\n")}
+function icsd(id){return id.split("-").join("")}
+function icsText(){var y0=now.getFullYear(),c=cdf(),d=new Date(),st=d.toISOString().replace(/[-:]/g,"").slice(0,15)+"Z",sq=Math.floor(d.getTime()/1000),L=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Mon Cycle//FR","CALSCALE:GREGORIAN","X-WR-CALNAME:Mon Cycle"],y,m,N,dd,id,k,w,nx,pl=hm(c.a)+"–"+hm(c.b)+" ("+fmt(dl())+")",n=0;
+function ev(uid,a,sum,desc){var e=new Date(Date.UTC(+a.slice(0,4),+a.slice(5,7)-1,+a.slice(8,10))+864e5),b=e.getUTCFullYear()+p2(e.getUTCMonth()+1)+p2(e.getUTCDate());
+L.push("BEGIN:VEVENT","UID:"+uid+"@moncycle","DTSTAMP:"+st,"SEQUENCE:"+sq,"DTSTART;VALUE=DATE:"+icsd(a),"DTEND;VALUE=DATE:"+b,"SUMMARY:"+icsq(sum),"TRANSP:TRANSPARENT");if(desc){L.push("DESCRIPTION:"+icsq(desc))}L.push("END:VEVENT");n++}
+for(y=y0;y<=y0+1;y++){for(m=0;m<12;m++){N=new Date(y,m+1,0).getDate();for(dd=1;dd<=N;dd++){id=iso(y,m,dd);k=S.days[id];w=work(y,m,dd);
+if(k&&T.hasOwnProperty(k)){ev(id+"-"+S.reg,id,T[k],w?"Jour de travail posé en "+T[k]:"")}
+else if(w){ev(id+"-"+S.reg,id,"Travail","Plage horaire : "+pl)}
+if(S.notes[id]){S.notes[id].forEach(function(t,i){ev(id+"-n"+i+"-"+S.reg,id,"Note : "+t,"")})}}}}
+L.push("END:VCALENDAR");return{n:n,txt:L.join("\r\n")+"\r\n"}}
+function icsExp(){var q=icsText(),d=new Date(),f="mon-cycle-agenda-"+iso(d.getFullYear(),d.getMonth(),d.getDate())+".ics";
+function ok(){msg("Fichier agenda enregistré : "+f+" ("+q.n+" événements)")}
+function ko(e){msg(e&&e.code==="declined"?"Export annulé.":"Export impossible sur cet appareil.")}
+if(window.claude&&window.claude.use){window.claude.use("downloads").then(function(dl){if(!dl){ko();return}return dl.save({filename:f,data:q.txt}).then(ok)}).catch(ko)}
+else{try{var bl=new Blob([q.txt],{type:"text/calendar"}),u=URL.createObjectURL(bl),a=document.createElement("a");a.href=u;a.download=f;document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(u)},4000);ok()}catch(er){ko()}}}
+function icscard(){return'<div class="card" style="margin-top:10px"><b>Agenda</b><div class="m">Crée un fichier .ics (jours travaillés, jours posés et notes de l’année en cours et de la suivante) à importer dans Google Calendar ou un autre agenda. À refaire après chaque modification.</div><button class="pi lb" data-ics="1">Exporter vers mon agenda (.ics)</button></div>'}
 function bkcard(){return'<div class="card" style="margin-top:10px"><b>Sauvegarde</b><div class="m">Enregistre dans un fichier le régime, les soldes, les jours posés, les notes, les vacances et les couleurs. À faire vous-même, régulièrement et avant de changer de téléphone ou d’adresse.</div><button class="go" data-bk="1" style="margin:4px 0">Sauvegarder mes données</button><label class="pi lb" for="rf">Restaurer depuis un fichier</label><input type="file" id="rf" class="vh"><button class="pi lb" data-cc0="1">Afficher la sauvegarde en texte</button><button class="pi lb" data-pt="1">Restaurer en collant le texte</button><div class="m">'+(S.last?'Dernière sauvegarde : '+new Date(S.last).toLocaleString("fr-FR",{dateStyle:"short",timeStyle:"short"}):'Aucune sauvegarde faite pour l’instant.')+'</div></div>'}
 function esc(s){return String(s).split("&").join("&amp;").split("<").join("&lt;").split(">").join("&gt;").split('"').join("&quot;")}
 function nb(){return'<button class="chip'+(B==="NOTE"?' on':'')+'" data-k="NOTE" style="--x:var(--note);--xt:var(--note-t,#fff)">Note</button>'}
@@ -243,6 +315,7 @@ if(t.closest(".pp")){return}
 if(t.closest("[data-x]")){$("pop").innerHTML="";return}
 if((b=t.closest("[data-k]"))){B=(B===b.dataset.k)?null:b.dataset.k;render();return}
 if(t.closest("[data-bk]")){backup();return}
+if(t.closest("[data-ics]")){icsExp();return}
 if(t.closest("[data-pt]")){pasteBox();return}
 if(t.closest("[data-cc0]")){copyBox();return}
 if((b=t.closest("[data-fs]"))){FS=b.dataset.fs==="1";if(FS){B=null;try{var el=document.documentElement;if(el.requestFullscreen&&!document.fullscreenElement){var pr=el.requestFullscreen();if(pr&&pr.catch){pr.catch(function(){})}}}catch(er){}}else{try{if(document.fullscreenElement){document.exitFullscreen()}}catch(er){}}render();return}
@@ -251,15 +324,21 @@ if((b=t.closest("[data-sw]"))){setcol(CI,b.dataset.sw);return}
 if(t.closest("[data-cr]")){delete S.col[CI];applyCols();save();render();return}
 if(t.closest("[data-cra]")){S.col={};applyCols();save();render();return}
 if((b=t.closest("[data-go]"))){TAB=b.dataset.go;render();return}
-if((b=t.closest("[data-t]"))){TAB=b.dataset.t;render();return}
+if((b=t.closest("[data-t]"))){TAB=b.dataset.t;DEL=false;render();return}
 if((b=t.closest("[data-n]"))){go(+b.dataset.n*stp());render();return}
 if((b=t.closest("[data-v]"))){S.view=b.dataset.v;save();render();return}
 if((b=t.closest(".d"))){day(b);return}
+if((b=t.closest("[data-ry]"))){if(b.dataset.ry===""){var ry=$("ry");ry.focus();ry.select();return}cdf().r=b.dataset.ry;save();render();return}
+if((b=t.closest("[data-pa]"))){cdf().a=b.dataset.pa;cdf().b=b.dataset.pb;save();render();return}
+if(t.id==="nc"){ncy();return}
+if(t.id==="dc"){if(!DEL){DEL=true;render()}else{dcy()}return}
 if(t.id==="ok"){S.setup=1;inibd();save();TAB="home";render()}};
 document.onchange=function(e){var i=e.target,v;
 if(i.id==="rg"){swreg(i.value)}
-else if(i.id==="st"){if(i.value){S.start=i.value;save();render()}}
-else if(i.id==="ln"){v=parse(i.value);if(v===null||v<=0){msg("Durée non reconnue (exemple : 12h08).");render();return}S.lens[S.reg]=v;save();render()}
+else if(i.id==="st"){if(i.value){cdf().st=i.value;save();render()}}
+else if(i.id==="ry"){var rr=pr(i.value);if(rr.err){msg(rr.err);render();return}cdf().r=rr.txt;save();render()}
+else if(i.id==="ha"||i.id==="hb"){var c0=cdf(),na=i.id==="ha"?i.value:c0.a,nb2=i.id==="hb"?i.value:c0.b;if(!durOf(na,nb2)){msg("Indiquez une heure de début et une heure de fin différentes.");render();return}c0.a=na;c0.b=nb2;save();render()}
+else if(i.dataset.a){var ka=i.dataset.a;v=DK[ka]?parseFloat(String(i.value).replace(",",".")):parse(i.value);if(v===null||isNaN(v)||v<0){msg("Valeur non reconnue (exemple : 109h12).");render();return}S.ann[ka]=v;save();render()}
 else if(i.id==="rf"){readBk(i.files&&i.files[0])}
 else if(i.id==="cp"){setcol(CI,i.value)}
 else if(i.id==="vo"){S.vz.on=i.checked?1:0;save();render()}
